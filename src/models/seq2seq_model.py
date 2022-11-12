@@ -6,8 +6,6 @@ import numpy as np
 import torch
 from torch import nn
 import torch.nn.functional as F
-import data_utils
-
 
 class Seq2SeqModel(nn.Module):
 	"""Sequence-to-sequence model for human motion prediction"""
