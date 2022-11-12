@@ -29,7 +29,7 @@ parser.add_argument('--learning_rate_step', dest='learning_rate_step',
                   default=10000, type=int)
 parser.add_argument('--batch_size', dest='batch_size',
                   help='Batch size to use during training.',
-                  default=64, type=int)
+                  default=128, type=int)
 parser.add_argument('--iterations', dest='iterations',
                   help='Iterations to train for.',
                   default=1e5, type=int)
@@ -37,9 +37,6 @@ parser.add_argument('--test_every', dest='test_every',
                   help='',
                   default=200, type=int)
 # Architecture
-parser.add_argument('--architecture', dest='architecture',
-                  help='Seq2seq architecture to use: [basic, tied].',
-                  default='tied', type=str)
 parser.add_argument('--loss_to_use', dest='loss_to_use',
                   help='The type of loss to use, supervised or sampling_based',
                   default='sampling_based', type=str)
@@ -73,7 +70,6 @@ args = parser.parse_args()
 train_dir = os.path.normpath(os.path.join( args.train_dir, args.action,
   'out_{0}'.format(args.seq_length_out),
   'iterations_{0}'.format(args.iterations),
-  args.architecture,
   args.loss_to_use,
   'size_{0}'.format(args.size),
   'lr_{0}'.format(args.learning_rate)))
@@ -98,7 +94,6 @@ def create_model(actions, sampling=False):
   """Create translation model and initialize or load parameters in session."""
 
   model = Seq2SeqModel(
-      args.architecture,
       args.seq_length_in if not sampling else 50,
       args.seq_length_out if not sampling else 100,
       args.size, # hidden layer size

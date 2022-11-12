@@ -9,13 +9,12 @@ import torch.nn.functional as F
 
 class Seq2SeqModel(nn.Module):
 	"""Sequence-to-sequence model for human motion prediction"""
-	def __init__(self,architecture,source_seq_len,target_seq_len,
+	def __init__(self,source_seq_len,target_seq_len,
 		rnn_size, # recurrent layer hidden size
 		batch_size,learning_rate,learning_rate_decay_factor,
 		loss_to_use,number_of_actions,dropout=0.25):
 
 		"""Args:
-		architecture: [basic, tied] whether to tie the encoder and decoder.
 		source_seq_len: length of the input sequence.
 		target_seq_len: length of the target sequence.
 		rnn_size: number of units in the rnn.
