@@ -1,11 +1,7 @@
 
 """Functions that help with data processing for human3.6m"""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
+import logging
 from six.moves import xrange # pylint: disable=redefined-builtin
 import copy
 
@@ -123,7 +119,7 @@ def expmap2rotmat(r):
   return R
 
 
-def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, actions, one_hot ):
+def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, actions):
   """Borrowed from SRNN code. Reads a csv file and returns a float32 matrix.
   https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/generateMotionData.py#L12
 
@@ -133,7 +129,6 @@ def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, a
     data_std: vector of standard deviation used to normalize the data
     dimensions_to_ignore: vector with dimensions not used by the model
     actions: list of strings with the encoded actions
-    one_hot: whether the data comes with one-hot encoding
   Returns
     origData: data originally used to
   """
@@ -148,10 +143,7 @@ def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, a
     dimensions_to_use.append(i)
   dimensions_to_use = np.array(dimensions_to_use)
 
-  if one_hot:
-    origData[:, dimensions_to_use] = normalizedData[:, :-len(actions)]
-  else:
-    origData[:, dimensions_to_use] = normalizedData
+  origData[:, dimensions_to_use] = normalizedData[:, :-len(actions)]
 
   # potentially ineficient, but only done once per experiment
   stdMat = data_std.reshape((1, D))
@@ -162,7 +154,7 @@ def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, a
   return origData
 
 
-def revert_output_format(poses, data_mean, data_std, dim_to_ignore, actions, one_hot):
+def revert_output_format(poses, data_mean, data_std, dim_to_ignore, actions):
   """
   Converts the output of the neural network to a format that is more easy to
   manipulate for, e.g. conversion to other format or visualization
@@ -187,7 +179,7 @@ def revert_output_format(poses, data_mean, data_std, dim_to_ignore, actions, one
   poses_out_list = []
   for i in xrange(poses_out.shape[0]):
     poses_out_list.append(
-      unNormalizeData(poses_out[i, :, :], data_mean, data_std, dim_to_ignore, actions, one_hot))
+      unNormalizeData(poses_out[i, :, :], data_mean, data_std, dim_to_ignore, actions))
 
   return poses_out_list
 
@@ -213,7 +205,7 @@ def readCSVasFloat(filename):
   return returnArray
 
 
-def load_data(path_to_dataset, subjects, actions, one_hot):
+def load_data(path_to_dataset, subjects, actions):
   """
   Borrowed from SRNN code. This is how the SRNN code reads the provided .txt files
   https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/processdata.py#L270
@@ -222,7 +214,6 @@ def load_data(path_to_dataset, subjects, actions, one_hot):
     path_to_dataset: string. directory where the data resides
     subjects: list of numbers. The subjects to load
     actions: list of string. The actions to load
-    one_hot: Whether to add a one-hot encoding to the data
   Returns
     trainData: dictionary with k:v
       k=(subject, action, subaction, 'even'), v=(nxd) un-normalized data
@@ -239,7 +230,7 @@ def load_data(path_to_dataset, subjects, actions, one_hot):
 
       for subact in [1, 2]:  # subactions
 
-        print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, subact))
+        logging.info("Reading subject {0}, action {1}, subaction {2}".format(subj, action, subact))
 
         filename = '{0}/S{1}/{2}_{3}.txt'.format( path_to_dataset, subj, action, subact)
         action_sequence = readCSVasFloat(filename)
@@ -247,14 +238,11 @@ def load_data(path_to_dataset, subjects, actions, one_hot):
         n, d = action_sequence.shape
         even_list = range(0, n, 2)
 
-        if one_hot:
-          # Add a one-hot encoding at the end of the representation
-          the_sequence = np.zeros( (len(even_list), d + nactions), dtype=float )
-          the_sequence[ :, 0:d ] = action_sequence[even_list, :]
-          the_sequence[ :, d+action_idx ] = 1
-          trainData[(subj, action, subact, 'even')] = the_sequence
-        else:
-          trainData[(subj, action, subact, 'even')] = action_sequence[even_list, :]
+        # Add a one-hot encoding at the end of the representation
+        the_sequence = np.zeros( (len(even_list), d + nactions), dtype=float )
+        the_sequence[ :, 0:d ] = action_sequence[even_list, :]
+        the_sequence[ :, d+action_idx ] = 1
+        trainData[(subj, action, subact, 'even')] = the_sequence
 
 
         if len(completeData) == 0:
@@ -265,7 +253,7 @@ def load_data(path_to_dataset, subjects, actions, one_hot):
   return trainData, completeData
 
 
-def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot ):
+def normalize_data( data, data_mean, data_std, dim_to_use, actions):
   """
   Normalize input data by removing unused dimensions, subtracting the mean and
   dividing by the standard deviation
@@ -276,25 +264,17 @@ def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot ):
     data_std: vector of standard deviation used to normalize the data
     dim_to_use: vector with dimensions used by the model
     actions: list of strings with the encoded actions
-    one_hot: whether the data comes with one-hot encoding
   Returns
     data_out: the passed data matrix, but normalized
   """
   data_out = {}
   nactions = len(actions)
 
-  if not one_hot:
-    # No one-hot encoding... no need to do anything special
-    for key in data.keys():
-      data_out[ key ] = np.divide( (data[key] - data_mean), data_std )
-      data_out[ key ] = data_out[ key ][ :, dim_to_use ]
-
-  else:
-    # TODO hard-coding 99 dimensions for un-normalized human poses
-    for key in data.keys():
-      data_out[ key ] = np.divide( (data[key][:, 0:99] - data_mean), data_std )
-      data_out[ key ] = data_out[ key ][ :, dim_to_use ]
-      data_out[ key ] = np.hstack( (data_out[key], data[key][:,-nactions:]) )
+  # TODO hard-coding 99 dimensions for un-normalized human poses
+  for key in data.keys():
+    data_out[ key ] = np.divide( (data[key][:, 0:99] - data_mean), data_std )
+    data_out[ key ] = data_out[ key ][ :, dim_to_use ]
+    data_out[ key ] = np.hstack( (data_out[key], data[key][:,-nactions:]) )
 
   return data_out
 
