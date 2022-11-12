@@ -9,8 +9,8 @@ import logging
 import numpy as np
 from six.moves import xrange # pylint: disable=redefined-builtin
 
-import data_utils
-import seq2seq_model
+from utils.data_utils import *
+from models.seq2seq_model import *
 import torch
 import torch.optim as optim
 from torch.autograd import Variable
@@ -43,9 +43,6 @@ parser.add_argument('--architecture', dest='architecture',
 parser.add_argument('--loss_to_use', dest='loss_to_use',
                   help='The type of loss to use, supervised or sampling_based',
                   default='sampling_based', type=str)
-parser.add_argument('--residual_velocities', dest='residual_velocities',
-                  help='Add a residual connection that effectively models velocities',action='store_true',
-                  default=False)
 parser.add_argument('--size', dest='size',
                   help='Size of each model layer.',
                   default=1024, type=int)
@@ -79,8 +76,7 @@ train_dir = os.path.normpath(os.path.join( args.train_dir, args.action,
   args.architecture,
   args.loss_to_use,
   'size_{0}'.format(args.size),
-  'lr_{0}'.format(args.learning_rate),
-  'residual_vel' if args.residual_velocities else 'not_residual_vel'))
+  'lr_{0}'.format(args.learning_rate)))
 
 # Logging
 if args.log_file=='':
@@ -101,7 +97,7 @@ os.makedirs(train_dir, exist_ok=True)
 def create_model(actions, sampling=False):
   """Create translation model and initialize or load parameters in session."""
 
-  model = seq2seq_model.Seq2SeqModel(
+  model = Seq2SeqModel(
       args.architecture,
       args.seq_length_in if not sampling else 50,
       args.seq_length_out if not sampling else 100,
@@ -110,8 +106,7 @@ def create_model(actions, sampling=False):
       args.learning_rate,
       args.learning_rate_decay_factor,
       args.loss_to_use if not sampling else "sampling_based",
-      len( actions ),
-      args.residual_velocities)
+      len( actions ))
 
   if args.load_model==0:
     return model
@@ -214,7 +209,7 @@ def train():
 
           srnn_loss = srnn_loss.cpu().data.numpy()
           # Denormalize the output
-          srnn_pred_expmap = data_utils.revert_output_format( srnn_poses,
+          srnn_pred_expmap = revert_output_format( srnn_poses,
             data_mean, data_std, dim_to_ignore, actions)
 
           # Save the errors here
@@ -230,8 +225,7 @@ def train():
             # Convert from exponential map to Euler angles
             for j in np.arange( eulerchannels_pred.shape[0] ):
               for k in np.arange(3,97,3):
-                eulerchannels_pred[j,k:k+3] = data_utils.rotmat2euler(
-                  data_utils.expmap2rotmat( eulerchannels_pred[j,k:k+3] ))
+                eulerchannels_pred[j,k:k+3] = rotmat2euler(expmap2rotmat( eulerchannels_pred[j,k:k+3] ))
 
             # The global translation (first 3 entries) and global rotation
             # (next 3 entries) are also not considered in the error, so the_key
@@ -311,12 +305,12 @@ def get_srnn_gts( actions, model, test_set, data_mean, data_std, dim_to_ignore, 
     srnn_expmap = srnn_expmap.cpu()
     # expmap -> rotmat -> euler
     for i in np.arange( srnn_expmap.shape[0] ):
-      denormed = data_utils.unNormalizeData(srnn_expmap[i,:,:], data_mean, data_std, dim_to_ignore, actions)
+      denormed = unNormalizeData(srnn_expmap[i,:,:], data_mean, data_std, dim_to_ignore, actions)
 
       if to_euler:
         for j in np.arange( denormed.shape[0] ):
           for k in np.arange(3,97,3):
-            denormed[j,k:k+3] = data_utils.rotmat2euler( data_utils.expmap2rotmat( denormed[j,k:k+3] ))
+            denormed[j,k:k+3] = rotmat2euler(expmap2rotmat( denormed[j,k:k+3] ))
 
       srnn_gt_euler.append( denormed );
 
@@ -373,7 +367,7 @@ def sample():
 
       srnn_loss = srnn_loss.cpu().data.numpy()
       # denormalizes too
-      srnn_pred_expmap = data_utils.revert_output_format(srnn_poses, data_mean, data_std, dim_to_ignore, actions)
+      srnn_pred_expmap = revert_output_format(srnn_poses, data_mean, data_std, dim_to_ignore, actions)
 
       # Save the samples
       with h5py.File( SAMPLES_FNAME, 'a' ) as hf:
@@ -394,8 +388,7 @@ def sample():
 
         for j in np.arange( eulerchannels_pred.shape[0] ):
           for k in np.arange(3,97,3):
-            eulerchannels_pred[j,k:k+3] = data_utils.rotmat2euler(
-              data_utils.expmap2rotmat( eulerchannels_pred[j,k:k+3] ))
+            eulerchannels_pred[j,k:k+3] = rotmat2euler(expmap2rotmat( eulerchannels_pred[j,k:k+3] ))
 
         eulerchannels_pred[:,0:6] = 0
 
@@ -469,15 +462,15 @@ def read_all_data( actions, seq_length_in, seq_length_out, data_dir):
   train_subject_ids = [1,6,7,8,9,11]
   test_subject_ids = [5]
 
-  train_set, complete_train = data_utils.load_data(data_dir,train_subject_ids,actions)
-  test_set,  complete_test  = data_utils.load_data(data_dir,test_subject_ids, actions)
+  train_set, complete_train = load_data(data_dir,train_subject_ids,actions)
+  test_set,  complete_test  = load_data(data_dir,test_subject_ids, actions)
 
   # Compute normalization stats
-  data_mean, data_std, dim_to_ignore, dim_to_use = data_utils.normalization_stats(complete_train)
+  data_mean, data_std, dim_to_ignore, dim_to_use = normalization_stats(complete_train)
 
   # Normalize -- subtract mean, divide by stdev
-  train_set = data_utils.normalize_data( train_set, data_mean, data_std, dim_to_use, actions)
-  test_set  = data_utils.normalize_data( test_set,  data_mean, data_std, dim_to_use, actions)
+  train_set = normalize_data( train_set, data_mean, data_std, dim_to_use, actions)
+  test_set  = normalize_data( test_set,  data_mean, data_std, dim_to_use, actions)
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
 
 

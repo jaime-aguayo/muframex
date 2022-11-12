@@ -12,8 +12,7 @@ class Seq2SeqModel(nn.Module):
 	def __init__(self,architecture,source_seq_len,target_seq_len,
 		rnn_size, # recurrent layer hidden size
 		batch_size,learning_rate,learning_rate_decay_factor,
-		loss_to_use,number_of_actions,
-		residual_velocities=False,dropout=0.25):
+		loss_to_use,number_of_actions,dropout=0.25):
 
 		"""Args:
 		architecture: [basic, tied] whether to tie the encoder and decoder.
@@ -29,7 +28,6 @@ class Seq2SeqModel(nn.Module):
 			each timestep to compute the loss after decoding, or to feed back the
 			prediction from the previous time-step.
 		number_of_actions: number of classes we have.
-		residual_velocities: whether to use a residual connection that models velocities.
 		"""
 		super(Seq2SeqModel, self).__init__()
 
