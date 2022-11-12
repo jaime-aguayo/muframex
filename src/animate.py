@@ -4,7 +4,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
-import viz
+from utils.viz import *
 from forward_kinematics import _some_variables, revert_coordinate_space, fkl
 
 def main():
@@ -34,7 +34,7 @@ def main():
 	# === Plot and animate ===
 	fig = plt.figure()
 	ax  = plt.axes(projection='3d')
-	ob  = viz.Ax3DPose(ax)
+	ob  = Ax3DPose(ax)
 
 	# First, plot the conditioning ground truth
 	for i in range(nframes_gt):

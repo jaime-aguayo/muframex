@@ -4,7 +4,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
-import viz
 import time
 import copy
 from utils.data_utils import expmap2rotmat,rotmat2expmap
