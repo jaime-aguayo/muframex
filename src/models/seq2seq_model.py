@@ -7,7 +7,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-class Seq2SeqModel(nn.Module):
+class MotionPredictor(nn.Module):
 	"""Sequence-to-sequence model for human motion prediction"""
 	def __init__(self,source_seq_len,target_seq_len,
 		rnn_size, # recurrent layer hidden size
@@ -28,14 +28,12 @@ class Seq2SeqModel(nn.Module):
 			prediction from the previous time-step.
 		number_of_actions: number of classes we have.
 		"""
-		super(Seq2SeqModel, self).__init__()
+		super(MotionPredictor, self).__init__()
 
-		self.human_dofs = 54
-		self.input_size = self.human_dofs + number_of_actions
+		self.human_dofs     = 54
+		self.input_size     = self.human_dofs + number_of_actions
 
 		logging.info("Input size is {}".format(self.input_size))
-
-		# Summary writers for train and test runs
 		self.source_seq_len = source_seq_len
 		self.target_seq_len = target_seq_len
 		self.rnn_size       = rnn_size
@@ -43,8 +41,8 @@ class Seq2SeqModel(nn.Module):
 		self.dropout        = dropout
 
 		# === Create the RNN that will summarizes the state ===
-		self.cell = torch.nn.GRUCell(self.input_size, self.rnn_size)
-		self.fc1  = nn.Linear(self.rnn_size, self.input_size)
+		self.cell           = torch.nn.GRUCell(self.input_size, self.rnn_size)
+		self.fc1            = nn.Linear(self.rnn_size, self.input_size)
 
 	# Forward pass
 	def forward(self, encoder_inputs, decoder_inputs, device):
@@ -69,13 +67,13 @@ class Seq2SeqModel(nn.Module):
 		# Decoding, sequentially
 		for i, inp in enumerate(decoder_inputs):
 			# Use teacher forcing?
-			# if prev is not None:
-			#	inp = loop_function(prev, i)
-			inp = inp.detach()
+			if prev is not None:
+				inp = loop_function(prev, i)
+			#inp = inp.detach()
 
 			state  = self.cell(inp, state)
-			# Output is seen as a perturbation to the previous value
-			output = inp + self.fc1(F.dropout(state, self.dropout,training=self.training))
+			# Output is seen as a residual to the previous value
+			output = inp + self.fc1(F.dropout(state,self.dropout,training=self.training))
 			outputs.append(output.view([1, batch_size, self.input_size]))
 			prev = output
 		outputs = torch.cat(outputs, 0)
@@ -132,7 +130,7 @@ class Seq2SeqModel(nn.Module):
 		SEED = 1234567890
 		rng = np.random.RandomState( SEED )
 
-		subject = 5
+		subject    = 5
 		subaction1 = 1
 		subaction2 = 2
 
@@ -164,18 +162,17 @@ class Seq2SeqModel(nn.Module):
 		  the constructed batches have the proper format to call step(...) later.
 		"""
 
-		actions = ["directions", "discussion", "eating", "greeting", "phoning",
-				"posing", "purchases", "sitting", "sittingdown", "smoking",
-				"takingphoto", "waiting", "walking", "walkingdog", "walkingtogether"]
+		actions = ["directions", "discussion", "eating", "greeting", "phoning","posing", "purchases", "sitting", "sittingdown", "smoking",
+		"takingphoto", "waiting", "walking", "walkingdog", "walkingtogether"]
 
 		if not action in actions:
 		  raise ValueError("Unrecognized action {0}".format(action))
 
 		frames = {}
-		frames[ action ] = self.find_indices_srnn( data, action )
+		frames[action] = self.find_indices_srnn( data, action )
 
-		batch_size = 8 # we always evaluate 8 seeds
-		subject    = 5 # we always evaluate on subject 5
+		batch_size     = 8 # we always evaluate 8 seeds
+		subject        = 5 # we always evaluate on subject 5
 		source_seq_len = self.source_seq_len
 		target_seq_len = self.target_seq_len
 
