@@ -1,5 +1,3 @@
-from __future__ import division
-
 import numpy as np
 import h5py
 import matplotlib
@@ -9,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import viz
 import time
 import copy
-import data_utils
+from utils.data_utils import expmap2rotmat,rotmat2expmap
 
 def fkl( angles, parent, offset, rotInd, expmapInd ):
   """
@@ -44,7 +42,7 @@ def fkl( angles, parent, offset, rotInd, expmapInd ):
 
     r = angles[ expmapInd[i] ]
 
-    thisRotation = data_utils.expmap2rotmat(r)
+    thisRotation = expmap2rotmat(r)
     thisPosition = np.array([xangle, yangle, zangle])
 
     if parent[i] == -1: # Root node
@@ -85,10 +83,10 @@ def revert_coordinate_space(channels, R0, T0):
 
   # Loop through the passed posses
   for ii in range(n):
-    R_diff = data_utils.expmap2rotmat( channels[ii, rootRotInd] )
+    R_diff = expmap2rotmat( channels[ii, rootRotInd] )
     R = R_diff.dot( R_prev )
 
-    channels_rec[ii, rootRotInd] = data_utils.rotmat2expmap(R)
+    channels_rec[ii, rootRotInd] = rotmat2expmap(R)
     T = T_prev + ((R_prev.T).dot( np.reshape(channels[ii,:3],[3,1]))).reshape(-1)
     channels_rec[ii,:3] = T
     T_prev = T

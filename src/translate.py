@@ -7,13 +7,10 @@ import sys
 import h5py
 import logging
 import numpy as np
-from six.moves import xrange # pylint: disable=redefined-builtin
-
 from utils.data_utils import *
 from models.seq2seq_model import *
 import torch
 import torch.optim as optim
-from torch.autograd import Variable
 import argparse
 
 # Learning
@@ -42,7 +39,7 @@ parser.add_argument('--loss_to_use', dest='loss_to_use',
                   default='sampling_based', type=str)
 parser.add_argument('--size', dest='size',
                   help='Size of each model layer.',
-                  default=1024, type=int)
+                  default=512, type=int)
 parser.add_argument('--seq_length_in', dest='seq_length_in',
                   help='Number of frames to feed into the encoder. 25 fps',
                   default=50, type=int)
@@ -351,7 +348,7 @@ def sample():
       # Make prediction with srnn' seeds
       encoder_inputs, decoder_inputs, decoder_outputs = model.get_batch_srnn( test_set, action, device)
       # Forward pass
-      srnn_poses = model(encoder_inputs, decoder_inputs)
+      srnn_poses = model(encoder_inputs, decoder_inputs, device)
 
       srnn_loss = (srnn_poses - decoder_outputs)**2
       srnn_loss.cpu().data.numpy()
