@@ -1,7 +1,6 @@
 
 ## human-motion-prediction
-
-This is a pytorch implementation of the paper
+Pytorch implementation of:
 
 Julieta Martinez, Michael J. Black, Javier Romero.
 _On human motion prediction using recurrent neural networks_. In CVPR 17.
@@ -34,8 +33,6 @@ cd ..
 
 ### Quick demo and visualization
 
-The code in this fork should work exactly as in the original repo:
-
 For a quick demo, you can train for a few iterations and visualize the outputs
 of your model.
 
@@ -60,12 +57,6 @@ This should create a visualization similar to this one
   <img src="https://raw.githubusercontent.com/una-dinosauria/human-motion-prediction/master/imgs/walking.gif"><br><br>
 </p>
 
-
-### Running average baselines
-
-To reproduce the running average baseline results from our paper, run
-
-`python src/baselines.py`
 
 ### RNN models
 
