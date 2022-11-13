@@ -12,7 +12,7 @@ class MotionPredictor(nn.Module):
 	def __init__(self,source_seq_len,target_seq_len,
 		rnn_size, # recurrent layer hidden size
 		batch_size,learning_rate,learning_rate_decay_factor,
-		loss_to_use,number_of_actions,dropout=0.25):
+		number_of_actions,dropout=0.3):
 
 		"""Args:
 		source_seq_len: length of the input sequence.
@@ -23,9 +23,6 @@ class MotionPredictor(nn.Module):
 			changed after initialization if this is convenient, e.g., for decoding.
 		learning_rate: learning rate to start with.
 		learning_rate_decay_factor: decay learning rate by this much when needed.
-		loss_to_use: [supervised, sampling_based]. Whether to use ground truth in
-			each timestep to compute the loss after decoding, or to feed back the
-			prediction from the previous time-step.
 		number_of_actions: number of classes we have.
 		"""
 		super(MotionPredictor, self).__init__()
@@ -198,7 +195,6 @@ class MotionPredictor(nn.Module):
 			encoder_inputs[i, :, :]  = data_sel[0:source_seq_len-1, :]
 			decoder_inputs[i, :, :]  = data_sel[source_seq_len-1:(source_seq_len+target_seq_len-1), :]
 			decoder_outputs[i, :, :] = data_sel[source_seq_len:, :]
-
 		encoder_inputs  = torch.tensor(encoder_inputs).float().to(device)
 		decoder_inputs  = torch.tensor(decoder_inputs).float().to(device)
 		decoder_outputs = torch.tensor(decoder_outputs).float().to(device)
