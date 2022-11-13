@@ -331,7 +331,7 @@ def read_all_data( actions, seq_length_in, seq_length_out, data_dir):
 
 	# === Read training data ===
 	logging.info("Reading training data (seq_len_in: {0}, seq_len_out {1}).".format(seq_length_in, seq_length_out))
-	train_subject_ids = [1,6,7,8,9,11]
+	train_subject_ids = [1,6,7,9,11]
 	test_subject_ids = [5]
 	train_set, complete_train = load_data(data_dir,train_subject_ids,actions)
 	test_set,  complete_test  = load_data(data_dir,test_subject_ids, actions)
