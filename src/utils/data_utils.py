@@ -15,7 +15,7 @@ def rotmat2euler( R ):
 		R: a 3x3 rotation matrix
 	Returns
 		eul: a 3x1 Euler angle representation of R
-  	"""
+	  """
 	if R[0,2] == 1 or R[0,2] == -1:
 		# special case
 		E3   = 0 # set arbitrarily
@@ -285,3 +285,61 @@ def normalization_stats(completeData):
 	data_std[dimensions_to_ignore] = 1.0
 
 	return data_mean, data_std, dimensions_to_ignore, dimensions_to_use
+
+def define_actions( action ):
+	"""
+	Define the list of actions we are using.
+
+	Args
+		action: String with the passed action. Could be "all"
+	Returns
+		actions: List of strings of actions
+	Raises
+		ValueError if the action is not included in H3.6M
+	"""
+	actions = ["walking", "eating", "smoking", "discussion",  "directions",
+				"greeting", "phoning", "posing", "purchases", "sitting",
+				"sittingdown", "takingphoto", "waiting", "walkingdog",
+				"walkingtogether"]
+
+	if action in actions:
+		return [action]
+	if action == "all":
+		return actions
+	if action == "all_srnn":
+		return ["walking", "eating", "smoking", "discussion"]
+	raise( ValueError, "Unrecognized action: %d" % action )
+
+
+def read_all_data( actions, seq_length_in, seq_length_out, data_dir):
+	"""
+	Loads data for training/testing and normalizes it.
+
+	Args
+		actions: list of strings (actions) to load
+		seq_length_in: number of frames to use in the burn-in sequence
+		seq_length_out: number of frames to use in the output sequence
+		data_dir: directory to load the data from
+	Returns
+		train_set: dictionary with normalized training data
+		test_set: dictionary with test data
+		data_mean: d-long vector with the mean of the training data
+		data_std: d-long vector with the standard dev of the training data
+		dim_to_ignore: dimensions that are not used becaused stdev is too small
+		dim_to_use: dimensions that we are actually using in the model
+	"""
+
+	# === Read training data ===
+	logging.info("Reading training data (seq_len_in: {0}, seq_len_out {1}).".format(seq_length_in, seq_length_out))
+	train_subject_ids = [1,6,7,8,9,11]
+	test_subject_ids = [5]
+	train_set, complete_train = load_data(data_dir,train_subject_ids,actions)
+	test_set,  complete_test  = load_data(data_dir,test_subject_ids, actions)
+
+	# Compute normalization stats
+	data_mean, data_std, dim_to_ignore, dim_to_use = normalization_stats(complete_train)
+
+	# Normalize -- subtract mean, divide by stdev
+	train_set = normalize_data( train_set, data_mean, data_std, dim_to_use, actions)
+	test_set  = normalize_data( test_set,  data_mean, data_std, dim_to_use, actions)
+	return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
