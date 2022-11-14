@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser(description='Train RNN for human pose estimation')
 parser.add_argument('--learning_rate', dest='learning_rate',
 				help='Learning rate',
-				default=0.00015, type=float)
+				default=0.00001, type=float)
 parser.add_argument('--learning_rate_decay_factor', 	dest='learning_rate_decay_factor',
 				help='Learning rate is multiplied by this much. 1 means no decay.',default=0.95, type=float)
 parser.add_argument('--learning_rate_step', dest='learning_rate_step',
