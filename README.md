@@ -38,17 +38,17 @@ of your model.
 
 To train, run
 ```bash
-python src/translate.py --action walking --seq_length_out 25 --iterations 10000
+python src/train.py --action walking --seq_length_out 25 --iterations 10000
 ```
 
 To save some samples of the model, run
 ```bash
-python src/translate.py --action walking --seq_length_out 25 --iterations 10000 --sample --load 10000
+python src/test.py --action walking --seq_length_out 25 --iterations 10000 --load 10000
 ```
 
 Finally, to visualize the samples run
 ```bash
-python src/forward_kinematics.py
+python src/animate.py
 ```
 
 This should create a visualization similar to this one
@@ -56,19 +56,6 @@ This should create a visualization similar to this one
 <p align="center">
   <img src="https://raw.githubusercontent.com/una-dinosauria/human-motion-prediction/master/imgs/walking.gif"><br><br>
 </p>
-
-
-### RNN models
-
-To train and reproduce the results of our models, use the following commands
-
-| model      | arguments | training time (gtx 1080) | notes |
-| ---        | ---       | ---   | --- |
-| Sampling-based loss (SA) | `python src/translate.py --action walking --seq_length_out 25` | 45s / 1000 iters | Realistic long-term motion, loss computed over 1 second. |
-| Residual (SA)            | `python src/translate.py --residual_velocities --action walking` | 35s / 1000 iters |  |
-| Residual unsup. (MA)     | `python src/translate.py --residual_velocities --learning_rate 0.005 --omit_one_hot` | 65s / 1000 iters | |
-| Residual sup. (MA)       | `python src/translate.py --residual_velocities --learning_rate 0.005` | 65s / 1000 iters | best quantitative.|
-| Untied       | `python src/translate.py --residual_velocities --learning_rate 0.005 --architecture basic` | 70s / 1000 iters | |
 
 
 You can substitute the `--action walking` parameter for any action in
