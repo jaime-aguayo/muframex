@@ -21,11 +21,11 @@ If you have any comment on this fork you can email me at [enriccorona93@gmail.co
 First things first, clone this repo and get the human3.6m dataset on exponential map format.
 
 ```bash
-git clone https://github.com/enriccorona/human-motion-prediction-pytorch.git
+git clone git@github.com:cimat-ris/human-motion-prediction-pytorch.git
 cd human-motion-prediction-pytorch
 mkdir data
 cd data
-wget http://www.cs.stanford.edu/people/ashesh/h3.6m.zip
+wget https://drive.google.com/file/d/1hqE6GrWZTBjVzmbehUBO7NTrbEgDNqbH/view?usp=sharing
 unzip h3.6m.zip
 rm h3.6m.zip
 cd ..
@@ -36,12 +36,12 @@ cd ..
 For a quick demo, you can train for a few iterations and visualize the outputs
 of your model.
 
-To train, run
+To train the model, run
 ```bash
 python src/train.py --action walking --seq_length_out 25 --iterations 10000
 ```
 
-To save some samples of the model, run
+To test the model on one sample, run
 ```bash
 python src/test.py --action walking --seq_length_out 25 --iterations 10000 --load 10000
 ```
