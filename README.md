@@ -26,6 +26,7 @@ cd human-motion-prediction-pytorch
 mkdir data
 cd data
 # Download this file: https://drive.google.com/file/d/1hqE6GrWZTBjVzmbehUBO7NTrbEgDNqbH/view?usp=sharing
+wget https://doc-14-bg-docs.googleusercontent.com/docs/securesc/alrk11iv5mn7ii0ag904975ub4luqi8q/kc4[…]827653287620&hash=ekulqrqhse0c8ie2paamn1tjuhkvof3k
 unzip h3.6m.zip
 rm h3.6m.zip
 cd ..
