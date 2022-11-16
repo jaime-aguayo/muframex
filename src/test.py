@@ -85,6 +85,7 @@ def get_srnn_gts( actions, model, test_set, data_mean, data_std, dim_to_ignore, 
 	srnn_gts_euler = {}
 	for action in actions:
 		srnn_gt_euler = []
+		# get_batch or get_batch_srnn
 		_, _, srnn_expmap = model.get_batch_srnn( test_set, action, device)
 		srnn_expmap = srnn_expmap.cpu()
 		# expmap -> rotmat -> euler
@@ -144,11 +145,10 @@ def main():
 		srnn_loss = srnn_loss.mean()
 		srnn_poses = srnn_poses.cpu().data.numpy()
 		srnn_poses = srnn_poses.transpose([1,0,2])
-		print(srnn_poses.shape)
 		srnn_loss = srnn_loss.cpu().data.numpy()
-		# denormalizes too
+		# Restores the data in the same format as the original: dimension 99.  
+		# Returns a tensor of size (batch_size, seq_length, dim) output.
 		srnn_pred_expmap = revert_output_format(srnn_poses, data_mean, data_std, dim_to_ignore, actions)
-
 		# Save the samples
 		with h5py.File( SAMPLES_FNAME, 'a' ) as hf:
 			for i in np.arange(nsamples):
@@ -171,6 +171,7 @@ def main():
 
 			# Pick only the dimensions with sufficient standard deviation. Others are ignored.
 			idx_to_use = np.where( np.std( eulerchannels_pred, 0 ) > 1e-4 )[0]
+			# Euclidean distance between Euler angles for sample i
 			euc_error = np.power( srnn_gts_euler[action][i][:,idx_to_use] - eulerchannels_pred[:,idx_to_use], 2)
 			euc_error = np.sum(euc_error, 1)
 			euc_error = np.sqrt( euc_error )
