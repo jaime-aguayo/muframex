@@ -30,6 +30,8 @@ parser.add_argument('--size', dest='size',
 					default=512, type=int)
 parser.add_argument('--seq_length_out', dest='seq_length_out',
 					help='Number of frames that the decoder has to predict. 25fps',default=10, type=int)
+parser.add_argument('--horizon-test-step', dest='horizon_test_step',
+					help='Time step at which we evaluate the error',default=25, type=int)
 # Directories
 parser.add_argument('--data_dir', dest='data_dir', help='Data directory',
 					default=os.path.normpath("./data/h3.6m/dataset"), type=str)
@@ -161,9 +163,9 @@ def main():
 				hf.create_dataset( node_name, data=srnn_pred_expmap[i] )
 
 		# Compute and save the errors here
-		mean_errors_batch = evaluate_batch(srnn_pred_expmap,srnn_gts_euler[action])
+		mean_errors_batch  = evaluate_batch(srnn_pred_expmap,srnn_gts_euler[action])
 		logging.info('Mean error for test data along the horizon on action {}: {}'.format( action,  mean_errors_batch))
-		
+		logging.info('Mean error for test data at horizon {} on action {}: {}'.format(args.horizon_test_step, action,  mean_errors_batch[args.horizon_test_step]))
 		with h5py.File( SAMPLES_FNAME, 'a' ) as hf:
 			node_name = 'mean_{0}_error'.format( action )
 			hf.create_dataset( node_name, data=mean_errors_batch )
