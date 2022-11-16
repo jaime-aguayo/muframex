@@ -25,7 +25,7 @@ git clone git@github.com:cimat-ris/human-motion-prediction-pytorch.git
 cd human-motion-prediction-pytorch
 mkdir data
 cd data
-wget https://drive.google.com/file/d/1hqE6GrWZTBjVzmbehUBO7NTrbEgDNqbH/view?usp=sharing
+# Download this file: https://drive.google.com/file/d/1hqE6GrWZTBjVzmbehUBO7NTrbEgDNqbH/view?usp=sharing
 unzip h3.6m.zip
 rm h3.6m.zip
 cd ..
