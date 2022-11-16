@@ -223,7 +223,6 @@ def load_data(path_to_dataset, subjects, actions):
 				action_sequence = readCSVasFloat(filename)
 				n, d = action_sequence.shape
 				even_list = range(0, n, 2)
-
 				# Add a one-hot encoding at the end of the representation
 				the_sequence = np.zeros( (len(even_list), d + nactions), dtype=float )
 				the_sequence[ :, 0:d ] = action_sequence[even_list, :]
@@ -338,7 +337,6 @@ def read_all_data( actions, seq_length_in, seq_length_out, data_dir):
 
 	# Compute normalization stats
 	data_mean, data_std, dim_to_ignore, dim_to_use = normalization_stats(complete_train)
-
 	# Normalize -- subtract mean, divide by stdev
 	train_set = normalize_data( train_set, data_mean, data_std, dim_to_use, actions)
 	test_set  = normalize_data( test_set,  data_mean, data_std, dim_to_use, actions)
