@@ -90,29 +90,35 @@ def main():
 		len( actions ))
 	model = model.to(device)
 
-	#=== This is the training loop ===
+	# This is the training loop
 	loss, val_loss = 0.0, 0.0
-	current_step = 0
-	all_losses = []
+	current_step   = 0
+	all_losses     = []
 	all_val_losses = []
 
+	# The optimizer
 	#optimiser = optim.SGD(model.parameters(), lr=args.learning_rate)
 	optimiser = optim.Adam(model.parameters(), lr=args.learning_rate, betas = (0.9, 0.999))
 
-	for _ in range( args.iterations ):
+	for _ in range(args.iterations):
 		optimiser.zero_grad()
 		# Set a flag to compute gradients
 		model.train()
 		# === Training step ===
+
+		# Get batch from the training set
 		encoder_inputs, decoder_inputs, decoder_outputs = model.get_batch(train_set,actions,device)
+
 		# Forward pass
 		preds     = model(encoder_inputs, decoder_inputs,device)
-		# Loss
+
+		# Loss: Mean Squared Errors
 		step_loss = (preds-decoder_outputs)**2
 		step_loss = step_loss.mean()
 
-		# Backpropagation and update step
+		# Backpropagation
 		step_loss.backward()
+		# Gradient descent step
 		optimiser.step()
 
 		step_loss = step_loss.cpu().data.numpy()
@@ -127,10 +133,10 @@ def main():
 			optimiser = optim.Adam(model.parameters(),lr=args.learning_rate, betas = (0.9, 0.999))
 			print("Decay learning rate. New value at " + str(args.learning_rate))
 
-		# Once in a while, save checkpoint, print statistics, and run evals.
+		# Once in a while, save checkpoint, print statistics.
 		if current_step % args.test_every == 0:
 			model.eval()
-			# === Validation with randomly chosen seeds ===
+			# === Validation ===
 			encoder_inputs, decoder_inputs, decoder_outputs = model.get_batch(test_set,actions,device)
 			preds = model(encoder_inputs, decoder_inputs, device)
 
