@@ -8,6 +8,7 @@ import h5py
 import logging
 import numpy as np
 from utils.data_utils import *
+from utils.evaluation import evaluate, evaluate_batch
 from models.motionpredictor import *
 import torch
 import torch.optim as optim
@@ -146,7 +147,7 @@ def main():
 		srnn_poses = srnn_poses.cpu().data.numpy()
 		srnn_poses = srnn_poses.transpose([1,0,2])
 		srnn_loss = srnn_loss.cpu().data.numpy()
-		# Restores the data in the same format as the original: dimension 99.  
+		# Restores the data in the same format as the original: dimension 99.
 		# Returns a tensor of size (batch_size, seq_length, dim) output.
 		srnn_pred_expmap = revert_output_format(srnn_poses, data_mean, data_std, dim_to_ignore, actions)
 		# Save the samples
@@ -160,27 +161,12 @@ def main():
 				hf.create_dataset( node_name, data=srnn_pred_expmap[i] )
 
 		# Compute and save the errors here
-		mean_errors = np.zeros( (len(srnn_pred_expmap), srnn_pred_expmap[0].shape[0]) )
-
-		for i in np.arange(nsamples):
-			eulerchannels_pred = srnn_pred_expmap[i]
-			for j in np.arange( eulerchannels_pred.shape[0] ):
-				for k in np.arange(3,97,3):
-					eulerchannels_pred[j,k:k+3] = rotmat2euler(expmap2rotmat( eulerchannels_pred[j,k:k+3] ))
-			eulerchannels_pred[:,0:6] = 0
-
-			# Pick only the dimensions with sufficient standard deviation. Others are ignored.
-			idx_to_use = np.where( np.std( eulerchannels_pred, 0 ) > 1e-4 )[0]
-			# Euclidean distance between Euler angles for sample i
-			euc_error = np.power( srnn_gts_euler[action][i][:,idx_to_use] - eulerchannels_pred[:,idx_to_use], 2)
-			euc_error = np.sum(euc_error, 1)
-			euc_error = np.sqrt( euc_error )
-			mean_errors[i,:] = euc_error
-
-		mean_mean_errors = np.mean( mean_errors, 0 )
+		mean_errors_batch = evaluate_batch(srnn_pred_expmap,srnn_gts_euler[action])
+		logging.info('Mean error for test data along the horizon on action {}: {}'.format( action,  mean_errors_batch))
+		
 		with h5py.File( SAMPLES_FNAME, 'a' ) as hf:
 			node_name = 'mean_{0}_error'.format( action )
-			hf.create_dataset( node_name, data=mean_mean_errors )
+			hf.create_dataset( node_name, data=mean_errors_batch )
 	return
 
 
