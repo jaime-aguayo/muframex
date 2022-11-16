@@ -134,7 +134,8 @@ class MotionPredictor(nn.Module):
 		T1 = data[ (subject, action, subaction1, 'even') ].shape[0]
 		T2 = data[ (subject, action, subaction2, 'even') ].shape[0]
 		prefix, suffix = 50, 100
-
+		# Test is performed always on subject 5
+		# Select 8 random sub-sequences (by specifying their indices)
 		idx = []
 		idx.append( rng.randint( 16,T1-prefix-suffix ))
 		idx.append( rng.randint( 16,T2-prefix-suffix ))
@@ -168,7 +169,7 @@ class MotionPredictor(nn.Module):
 		frames = {}
 		frames[action] = self.find_indices_srnn( data, action )
 
-		batch_size     = 8 # we always evaluate 8 seeds
+		batch_size     = 8 # we always evaluate 8 sequences
 		subject        = 5 # we always evaluate on subject 5
 		source_seq_len = self.source_seq_len
 		target_seq_len = self.target_seq_len
