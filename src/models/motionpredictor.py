@@ -12,7 +12,7 @@ class MotionPredictor(nn.Module):
 	def __init__(self,source_seq_len,target_seq_len,
 		rnn_size, # recurrent layer hidden size
 		batch_size,learning_rate,learning_rate_decay_factor,
-		number_of_actions,dropout=0.3):
+		number_of_actions, latent_size=100, dropout=0.3):
 
 		"""Args:
 		source_seq_len: length of the input sequence.
@@ -36,10 +36,13 @@ class MotionPredictor(nn.Module):
 		self.rnn_size       = rnn_size
 		self.batch_size     = batch_size
 		self.dropout        = dropout
+		self.latent_size    = rnn_size
 
 		# === Create the RNN that will summarizes the state ===
 		self.cell           = torch.nn.GRUCell(self.input_size, self.rnn_size)
 		self.fc1            = nn.Linear(self.rnn_size, self.input_size)
+		self.fc_mean        = nn.Linear(self.rnn_size, self.latent_size)
+		self.fc_var         = nn.Linear(self.rnn_size, self.latent_size)
 
 	# Forward pass
 	def forward(self, encoder_inputs, decoder_inputs, device):
@@ -59,6 +62,12 @@ class MotionPredictor(nn.Module):
 			# Apply dropout in training
 			state = F.dropout(state, self.dropout, training=self.training)
 
+		mu = self.fc_mean(state)
+		logvar = self.fc_var(state)
+
+		z = self.reparameterize(mu, logvar)
+		state = z
+
 		outputs = []
 		prev    = None
 		# Decoding, sequentially
@@ -75,7 +84,7 @@ class MotionPredictor(nn.Module):
 			prev = output
 		outputs = torch.cat(outputs, 0)
 		# Size should be batch_size x target_seq_len x input_size
-		return torch.transpose(outputs, 0, 1)
+		return torch.transpose(outputs, 0, 1), mu, logvar
 
 
 	def get_batch( self, data, actions, device):
@@ -165,7 +174,7 @@ class MotionPredictor(nn.Module):
 
 		if not action in actions:
 		  raise ValueError("Unrecognized action {0}".format(action))
-
+		
 		frames = {}
 		frames[action] = self.find_indices_srnn( data, action )
 
@@ -200,3 +209,23 @@ class MotionPredictor(nn.Module):
 		decoder_inputs  = torch.tensor(decoder_inputs).float().to(device)
 		decoder_outputs = torch.tensor(decoder_outputs).float().to(device)
 		return encoder_inputs, decoder_inputs, decoder_outputs
+
+	def reparameterize(self, mu, logvar):
+		"""Reparameterization trick used to allow backpropagation 
+        through stochastic process
+        Parameters
+        ----------
+        mu     : tensor
+            tensor of mean values
+        logvar : tensor
+            tensor of log variance values
+        
+        Returns
+        -------
+        latent_code
+            tensor of sample latent codes
+        """
+		std = torch.exp(0.5*logvar)
+		eps = torch.randn_like(std, requires_grad=False)
+        
+		return mu + eps*std
