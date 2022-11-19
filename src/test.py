@@ -147,8 +147,8 @@ def main():
         # Forward pass
         srnn_poses, mu, logvar = model(encoder_inputs, decoder_inputs, device)
         rec_loss = (srnn_poses - decoder_outputs)**2
-        kld_loss = -args.kl_factor * (1 + logvar - mu**2 - torch.exp(logvar))
-        srnn_loss = torch.mean(torch.sum(kld_loss, axis=1)) + rec_loss.mean()
+        # kld_loss = -args.kl_factor * (1 + logvar - mu**2 - torch.exp(logvar)) ; torch.mean(torch.sum(kld_loss, axis=1)) 
+        srnn_loss = rec_loss.mean()
         srnn_loss.cpu().data.numpy()
         srnn_loss = srnn_loss.mean()
         srnn_poses = srnn_poses.cpu().data.numpy()

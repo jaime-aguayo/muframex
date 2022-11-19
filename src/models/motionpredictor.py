@@ -12,7 +12,7 @@ class MotionPredictor(nn.Module):
 	def __init__(self,source_seq_len,target_seq_len,
 		rnn_size, # recurrent layer hidden size
 		batch_size,learning_rate,learning_rate_decay_factor,
-		number_of_actions, latent_size=100, dropout=0.3):
+		number_of_actions,dropout=0.3):
 
 		"""Args:
 		source_seq_len: length of the input sequence.
@@ -27,6 +27,8 @@ class MotionPredictor(nn.Module):
 		"""
 		super(MotionPredictor, self).__init__()
 
+		self.n_z = 64
+		
 		self.human_dofs     = 54
 		self.input_size     = self.human_dofs + number_of_actions
 
@@ -36,15 +38,25 @@ class MotionPredictor(nn.Module):
 		self.rnn_size       = rnn_size
 		self.batch_size     = batch_size
 		self.dropout        = dropout
-		self.latent_size    = rnn_size
 
 		# === Create the RNN that will summarizes the state ===
-		self.cell           = torch.nn.GRUCell(self.input_size, self.rnn_size)
-		self.fc1            = nn.Linear(self.rnn_size, self.input_size)
-		self.fc_mean        = nn.Linear(self.rnn_size, self.latent_size)
-		self.fc_var         = nn.Linear(self.rnn_size, self.latent_size)
+		#self.cell           = torch.nn.GRUCell(self.input_size, self.rnn_size)
+		#self.fc1            = nn.Linear(self.rnn_size, self.input_size)
+		
+		# encoder
+		self.fc0            = nn.Linear(self.input_size + self.input_size, self.rnn_size)
+		self.cell1           = torch.nn.GRUCell(self.rnn_size, self.rnn_size)
+		
+		# decoder
+		self.fc1            = nn.Linear(self.n_z + self.input_size, self.rnn_size)
+		self.cell2           = torch.nn.GRUCell(self.input_size, self.rnn_size)
+		self.fc2            = nn.Linear(self.rnn_size, self.input_size)
+		
+		
+		# For CVAE
+		self.mu             = nn.Linear(self.rnn_size, self.n_z)
+		self.sigma          = nn.Linear(self.rnn_size, self.n_z)
 
-	# Forward pass
 	def forward(self, encoder_inputs, decoder_inputs, device):
 		def loop_function(prev, i):
 			return prev
@@ -55,18 +67,29 @@ class MotionPredictor(nn.Module):
 		decoder_inputs = torch.transpose(decoder_inputs, 0, 1)
 		state          = torch.zeros(batch_size, self.rnn_size).to(device)
 
+		#        print("** ", encoder_inputs.shape, decoder_inputs.shape)
+
 		# Encoding
 		for i in range(self.source_seq_len-1):
 			# Apply the RNN cell
-			state = self.cell(encoder_inputs[i], state)
+			# Put the labels
+			if i < self.source_seq_len-2:
+				inputs = torch.cat([encoder_inputs[i], encoder_inputs[i+1]], 1)
+			else:
+				inputs = torch.cat([encoder_inputs[i], decoder_inputs[0]], 1)
+			#state = self.cell(encoder_inputs[i], state)
+			inputs = self.fc0(inputs)
+			state = self.cell1(inputs, state)
 			# Apply dropout in training
 			state = F.dropout(state, self.dropout, training=self.training)
 
-		mu = self.fc_mean(state)
-		logvar = self.fc_var(state)
-
-		z = self.reparameterize(mu, logvar)
-		state = z
+		# For CVAE
+		z_mu = self.mu(state)
+		z_sigma = self.sigma(state)
+		z = self.reparameterize(z_mu,z_sigma)
+		# merge latent space with label
+		zc = torch.cat([z, decoder_inputs[0]], axis=1)
+		state = self.fc1(zc)
 
 		outputs = []
 		prev    = None
@@ -77,14 +100,15 @@ class MotionPredictor(nn.Module):
 				inp = loop_function(prev, i)
 			#inp = inp.detach()
 
-			state  = self.cell(inp, state)
+			state  = self.cell2(inp, state)
 			# Output is seen as a residual to the previous value
-			output = inp + self.fc1(F.dropout(state,self.dropout,training=self.training))
+			output = inp + self.fc2(F.dropout(state,self.dropout,training=self.training))
 			outputs.append(output.view([1, batch_size, self.input_size]))
 			prev = output
 		outputs = torch.cat(outputs, 0)
+
 		# Size should be batch_size x target_seq_len x input_size
-		return torch.transpose(outputs, 0, 1), mu, logvar
+		return torch.transpose(outputs, 0, 1), z_mu, z_sigma
 
 
 	def get_batch( self, data, actions, device):
@@ -156,7 +180,7 @@ class MotionPredictor(nn.Module):
 		idx.append( rng.randint( 16,T2-prefix-suffix ))
 		return idx
 
-	def get_batch_srnn(self, data, action, device):
+	def get_batch_srnn(self, data, action, subject, device):
 		"""
 		Get a random batch of data from the specified bucket, prepare for step.
 
@@ -179,7 +203,6 @@ class MotionPredictor(nn.Module):
 		frames[action] = self.find_indices_srnn( data, action )
 
 		batch_size     = 8 # we always evaluate 8 sequences
-		subject        = 5 # we always evaluate on subject 5
 		source_seq_len = self.source_seq_len
 		target_seq_len = self.target_seq_len
 

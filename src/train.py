@@ -20,10 +20,10 @@ parser.add_argument('--learning_rate', dest='learning_rate',
 				help='Learning rate',
 				default=0.00001, type=float)
 parser.add_argument('--learning_rate_decay_factor', 	dest='learning_rate_decay_factor',
-				help='Learning rate is multiplied by this much. 1 means no decay.',default=0.95, type=float)
+				help='Learning rate is multiplied by this much. 1 means no decay.',default=0.9, type=float)
 parser.add_argument('--learning_rate_step', dest='learning_rate_step',
 				help='Every this many steps, do decay.',
-				default=10000, type=int)
+				default=5000, type=int)
 parser.add_argument('--batch_size', dest='batch_size',
 				help='Batch size to use during training.',
 				default=128, type=int)
@@ -123,9 +123,9 @@ def main():
         # Loss: Mean Squared Errors
         rec_loss = (preds-decoder_outputs)**2
         rec_loss = rec_loss.mean()
-        kld_loss = - (1. + logvar - mu**2 - torch.exp(logvar))
+        kld_loss = -0.5 * (1 + logvar - mu**2 - torch.exp(logvar))
         kld_loss = torch.mean(torch.sum(kld_loss, axis=1))
-        step_loss = args.kl_factor * kld_loss + rec_loss
+        step_loss = args.kl_factor*kld_loss + rec_loss
         val_loss = step_loss.mean()
 
         # Backpropagation
@@ -135,8 +135,8 @@ def main():
 
         step_loss = step_loss.cpu().data.numpy()
 
-        if current_step % 10 == 0:
-            logging.info("step {0:04d}; step_loss: {1:.4f}".format(current_step, step_loss ))
+        if current_step % 100 == 0:
+            logging.info("step {0:04d}; step_loss: {1:.4f} ({2:.4f}, {3:.4f})".format(current_step, step_loss, rec_loss.cpu().data.numpy(), kld_loss.cpu().data.numpy()))
         loss += step_loss / args.test_every
         current_step += 1
         # === step decay ===

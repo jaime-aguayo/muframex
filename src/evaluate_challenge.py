@@ -107,7 +107,7 @@ def get_srnn_gts( actions, model, test_set, subject, data_mean, data_std, dim_to
 
 def main():
 	actions     = ["walking"]
-	test_subject= 8
+	test_subject= 5
 	nsamples    = 20
 	generative  = False
 	# === Create the model ===
@@ -144,7 +144,7 @@ def main():
 	# Forward pass
 	if not generative:
 		# Deterministic model
-		srnn_poses = model(encoder_inputs, decoder_inputs, device)
+		srnn_poses, _, __ = model(encoder_inputs, decoder_inputs, device)
 		srnn_poses = srnn_poses.unsqueeze(1).repeat(1,nsamples,1,1)
 	else:
 		# Generative model
